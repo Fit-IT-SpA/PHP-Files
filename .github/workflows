@@ -1,0 +1,30 @@
+name: Angular deployment
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+          cache: "npm"
+      
+      - name: Intall dependencies and build
+        run: npm ci && npm run build -- --configuration=dev
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2.5.1
+        with:
+          key: ${{ secrets.FBDEVTECH_SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.FBDEVTECH_KNOWN_HOSTS }}
+
+      - name: Deploy using rsync
+        run: rsync -avz ./dist/app-nielsen/ ${{ secrets.FBDEVTECH_SSH_USER }}@${{ secrets.FBDEVTECH_SSH_HOST }}:/var/www/html/
